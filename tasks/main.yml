@@ -1,0 +1,63 @@
+---
+- name: Create configuration directory
+  file:
+    dest: "{{ wireguard_directory }}"
+    state: directory
+    # TODO(sbog): change it from 0777 to according 0755 and fix user/group ownership
+    mode: 0700
+    owner: root
+    group: root
+
+- name: Find existing peers
+  find:
+    paths: "{{ wireguard_directory }}"
+    patterns: "peer_*"
+    file_type: "directory"
+  register: dirs
+
+- name: Create a list of existing peer directories
+  set_fact:
+    list_of_existing_peer_dirs: "{{ list_of_existing_peer_dirs|default([]) }} + [ '{{ item.path }}' ]"
+  with_items: "{{ dirs.files }}"
+
+- name: Create a list of peer directoriers
+  set_fact:
+    list_of_peer_dirs: "{{ list_of_peer_dirs|default([]) }} + [ '{{ wireguard_directory }}/peer_{{ item }}' ]"
+  with_items: "{{ wireguard_peers_names }}"
+
+- name: Include docker-related tasks
+  include_tasks: run_in_docker.yml
+  when: wireguard_run_in_docker
+
+# - name: Include standalone tasks
+#   include_tasks: run_standalone.yml
+#   when: not wireguard_run_in_docker
+
+# - name: Remove old peers' configs
+#   file:
+#     path: "{{ item }}"
+#     state: absent
+#   with_items: "{{ list_of_existing_peer_dirs | default([]) | difference(list_of_peer_dirs) }}"
+
+# - name: Fetch configurations to localhost
+#   fetch:
+#     src: "{{ wireguard_directory }}/peer_{{ item }}/peer_{{ item }}.conf"
+#     dest: "/tmp/wireguard_vpn/peer_{{ item }}.conf"
+#     flat: yes
+#   with_items: "{{ wireguard_peers_names }}"
+#   tags: ['fetch_configs']
+
+# - name: Fetch qr codes to localhost
+#   fetch:
+#     src: "{{ wireguard_directory }}/peer_{{ item }}/peer_{{ item }}.png"
+#     dest: "/tmp/wireguard_vpn/peer_{{ item }}.png"
+#     flat: yes
+#   with_items: "{{ wireguard_peers_names }}"
+#   tags: ['fetch_configs']
+
+# - name: Start service wireguard
+#   ansible.builtin.service:
+#     name: wg-quick@wg0
+#     enabled: yes
+#     state: started
+#   when: not wireguard_run_in_docker

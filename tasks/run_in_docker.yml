@@ -1,0 +1,35 @@
+- name: Start docker wireguard container
+  community.docker.docker_compose:
+    project_name: wireguard
+    definition:
+      version: '2'
+      services:
+        wireguard:
+          image: "linuxserver/wireguard"
+          container_name: "wireguard"
+          ports:
+            - "{{ wireguard_server_port }}:{{ wireguard_server_port }}/udp"
+          volumes:
+            - "/lib/modules:/lib/modules"
+            - "{{ wireguard_directory }}:/config"
+          hostname: "wireguard"
+          restart: always
+          labels: "{{ wireguard_docker_labels }}"
+          cap_add:
+            - NET_ADMIN
+            - SYS_MODULE
+          environment:
+            - PUID=1000
+            - PGID=1000
+            - TZ=Europe/Moscow
+            - "SERVERURL={{ wireguard_server_url }}"
+            - "SERVERPORT={{ wireguard_server_port }}"
+            - "PEERS={{ wireguard_peers_names | join(',') }}"
+            - "PEERDNS={{ wireguard_peers_dns | join(',') }}"
+            - "INTERNAL_SUBNET={{ wireguard_internal_subnet }}"
+            - "ALLOWEDIPS={{ wireguard_allowed_ips }}"
+            - "LOG_CONFS={{ wireguard_log_confs }}"
+      networks:
+        default:
+          external:
+            name: "{{ wireguard_docker_network_name }}"

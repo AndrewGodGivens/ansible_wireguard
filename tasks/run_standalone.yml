@@ -1,0 +1,5 @@
+
+- name: Install wireguard from repo
+  ansible.builtin.apt:
+    pkg:
+    - wireguard
